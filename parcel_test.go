@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -70,7 +71,8 @@ func TestSetAddress(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, newAddress, storedParcel.Address)
 
-	_ = store.Delete(id)
+	err = store.Delete(id)
+	require.NoError(t, err)
 }
 
 func TestSetStatus(t *testing.T) {
@@ -133,13 +135,11 @@ func TestGetByClient(t *testing.T) {
 	for _, parcel := range storedParcels {
 		expectedParcel, ok := parcelMap[parcel.Number]
 		require.True(t, ok, "Посылка с номером %d не найдена в parcelMap", parcel.Number)
-		require.Equal(t, expectedParcel.Client, parcel.Client)
-		require.Equal(t, expectedParcel.Status, parcel.Status)
-		require.Equal(t, expectedParcel.Address, parcel.Address)
-		require.Equal(t, expectedParcel.CreatedAt, parcel.CreatedAt)
+		assert.Equal(t, expectedParcel, parcel)
 	}
 
 	for id := range parcelMap {
-		_ = store.Delete(id)
+		err := store.Delete(id)
+		require.NoError(t, err)
 	}
 }

@@ -39,7 +39,7 @@ func (s ParcelStore) Get(number int) (Parcel, error) {
 	p := Parcel{}
 	err := row.Scan(&p.Number, &p.Client, &p.Status, &p.Address, &p.CreatedAt)
 	if err != nil {
-		return p, err
+		return Parcel{}, err
 	}
 
 	return p, nil
@@ -85,16 +85,7 @@ func (s ParcelStore) SetStatus(number int, status string) error {
 }
 
 func (s ParcelStore) SetAddress(number int, address string) error {
-	parcel, err := s.Get(number)
-	if err != nil {
-		return err
-	}
-
-	if parcel.Status != ParcelStatusRegistered {
-		return errors.New("нельзя изменить адрес для посылки, которая не в статусе 'registered'")
-	}
-
-	_, err = s.db.Exec(
+	result, err := s.db.Exec(
 		"UPDATE parcel SET address = ? WHERE number = ? AND status = ?",
 		address, number, ParcelStatusRegistered,
 	)
@@ -102,25 +93,34 @@ func (s ParcelStore) SetAddress(number int, address string) error {
 		return err
 	}
 
-	return nil
-}
-
-func (s ParcelStore) Delete(number int) error {
-	parcel, err := s.Get(number)
+	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return err
 	}
 
-	if parcel.Status != ParcelStatusRegistered {
-		return errors.New("нельзя удалить посылку, которая не в статусе 'registered'")
+	if rowsAffected == 0 {
+		return errors.New("нельзя изменить адрес для посылки, которая не в статусе 'registered'")
 	}
 
-	_, err = s.db.Exec(
+	return nil
+}
+
+func (s ParcelStore) Delete(number int) error {
+	result, err := s.db.Exec(
 		"DELETE FROM parcel WHERE number = ? AND status = ?",
 		number, ParcelStatusRegistered,
 	)
 	if err != nil {
 		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("нельзя удалить посылку, которая не в статусе 'registered'")
 	}
 
 	return nil
